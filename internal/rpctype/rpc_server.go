@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
+	"sync"
 	"time"
 
 	"github.com/distributed-fs/internal"
@@ -11,53 +12,71 @@ import (
 
 // RPCServer is a struct that will act as an RpcServer for our distrubuted file system
 type RPCServer struct {
-	server  *rpc.Server
-	on      bool
-	turnOff chan bool
+	shutdown chan bool
+	ln       net.Listener
+	wg       sync.WaitGroup
 }
 
 // NewRPCServer creates allocates and initializes an instance of RpcServer
 func NewRPCServer() *RPCServer {
 	srv := new(RPCServer)
-	srv.server = rpc.NewServer()
-	srv.turnOff = make(chan bool)
+	srv.shutdown = make(chan bool)
+	srv.wg = sync.WaitGroup{}
 	return srv
 }
 
 // Start starts the rpc sever using the address specified
 func (srv *RPCServer) Start(address string) error {
-
-	ln, err := net.Listen("tcp", address)
+	var err error
+	srv.ln, err = net.Listen("tcp", address)
 	if err != nil {
 		return fmt.Errorf("Error starting RPC server with address %v. Received the following error: %v", address, err)
 	}
 
 	go func() {
-		srv.on = true
-		for srv.on {
-			conn, err := ln.Accept()
+		for {
+			conn, err := srv.ln.Accept()
 			if err != nil {
-				internal.Warning(err.Error())
-				continue
+				select {
+				case <-srv.shutdown:
+					fmt.Println("shutting down!")
+					return
+				default:
+					internal.Warning(err.Error())
+					continue
+				}
 			}
-			go srv.server.ServeConn(conn)
+
+			srv.wg.Add(1)
+			go func() {
+				rpc.ServeConn(conn)
+				srv.wg.Done()
+			}()
 		}
-		srv.turnOff <- true
 	}()
+
+	internal.Success("server started!")
 
 	return nil
 }
 
+// Stop function stops the RPCServer from running
 func (srv *RPCServer) Stop() error {
-	srv.on = false
+	c := make(chan struct{})
+
+	// Send signal to shutdown and wait until all running tasks are completed
+	go func() {
+		srv.shutdown <- true
+		srv.wg.Wait()
+		c <- struct{}{}
+	}()
+
+	srv.ln.Close()
+
 	select {
-	case <-srv.turnOff:
+	case <-c:
 	case <-time.After(10 * time.Second):
 		return fmt.Errorf("RPCServer failed to shut off after 10 seconds")
 	}
 	return nil
-}
-
-func (srv *RPCServer) RegisterFunction() {
-
 }
