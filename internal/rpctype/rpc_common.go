@@ -12,13 +12,12 @@ type Server interface {
 
 // ChunkserverRegisterRequest is a struct that will be used to register a chunkserver to master when it spawns
 type ChunkserverRegisterRequest struct {
-	IPAddress string
-	Port      uint16
+	ServerAddress string
 }
 
 // ChunkserverRegisterResponse is struct that will be sent to the chunkserver from master
 type ChunkserverRegisterResponse struct {
-	ok bool
+	Ok bool
 }
 
 // PollChunkserverRequest is a struct that will be used to poll the chunkservers periodically

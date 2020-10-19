@@ -18,3 +18,8 @@ func Failure(message string) {
 func Success(message string) {
 	color.Green(message)
 }
+
+// Info prints information to the screen
+func Info(message string) {
+	color.Cyan(message)
+}

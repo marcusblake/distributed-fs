@@ -39,7 +39,6 @@ func (srv *RPCServer) Start(address string) error {
 			if err != nil {
 				select {
 				case <-srv.shutdown:
-					fmt.Println("shutting down!")
 					return
 				default:
 					internal.Warning(err.Error())
@@ -54,9 +53,6 @@ func (srv *RPCServer) Start(address string) error {
 			}()
 		}
 	}()
-
-	internal.Success("server started!")
-
 	return nil
 }
 
