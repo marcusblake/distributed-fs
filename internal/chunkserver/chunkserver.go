@@ -8,6 +8,10 @@ import (
 	"github.com/distributed-fs/internal/rpctype"
 )
 
+const (
+	masterRegistrationMethod = "Master.ChunkserverRegistration"
+)
+
 // Chunkserver is a struct that represents the chunks
 type Chunkserver struct {
 	files map[string]bool
@@ -28,7 +32,6 @@ func NewChunkserver() *Chunkserver {
 func RegisterChunkserver(masterAddress string, chunkserverAddress string) error {
 	internal.Info("making call to master")
 	// Setup necessary arguments and parameters
-	method := "Master.ChunkserverRegistration"
 	args := &rpctype.ChunkserverRegisterRequest{
 		ServerAddress: chunkserverAddress,
 	}
@@ -42,7 +45,7 @@ func RegisterChunkserver(masterAddress string, chunkserverAddress string) error 
 	// Close the TCP connection when done
 	defer registerClient.Close()
 
-	err = registerClient.Call(method, args, &reply)
+	err = registerClient.Call(masterRegistrationMethod, args, &reply)
 	if err != nil {
 		return err
 	} else if !reply.Ok {
@@ -54,7 +57,7 @@ func RegisterChunkserver(masterAddress string, chunkserverAddress string) error 
 	return nil
 }
 
-// FileIOReqeust handles request to perform operations on files from client
+// FileIORequest handles request to perform operations on files from client
 func FileIORequest(req *rpctype.FileIORequest, res *rpctype.FileIOResponse) error {
 	// switch operation {
 	// case cmn.Open:
