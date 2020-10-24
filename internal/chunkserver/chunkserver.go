@@ -3,6 +3,7 @@ package chunkserver
 import (
 	"fmt"
 	"net/rpc"
+	"sync"
 
 	"github.com/distributed-fs/internal"
 	"github.com/distributed-fs/internal/rpctype"
@@ -16,15 +17,20 @@ const (
 // Chunkserver is a struct that represents the chunks
 type Chunkserver struct {
 	files   map[string]bool
-	handler FileHandler
+	handler *FileHandler
 	*rpctype.RPCServer
 }
 
 // NewChunkserver allocates a new instances of a chunkserver and initializes all of its fields
 func NewChunkserver() *Chunkserver {
+	fileHandler := &FileHandler{
+		OpenFiles: make(map[string]*File),
+		lck:       sync.Mutex{},
+	}
+
 	chunkserver := &Chunkserver{
 		make(map[string]bool),
-		FileHandler{},
+		fileHandler,
 		rpctype.NewRPCServer(),
 	}
 	rpc.Register(chunkserver)
@@ -62,6 +68,7 @@ func RegisterChunkserver(masterAddress string, chunkserverAddress string) error 
 
 // FileIORequest handles request to perform operations on files from client
 func (chunk *Chunkserver) FileIORequest(req *rpctype.FileIORequest, res *rpctype.FileIOResponse) error {
+	internal.Warning("received request")
 	operation := req.Operation
 	filename := req.Filename
 	bytes := req.Bytes
@@ -77,6 +84,8 @@ func (chunk *Chunkserver) FileIORequest(req *rpctype.FileIORequest, res *rpctype
 
 	case common.Read:
 		data, err = chunk.handler.Read(filename, bytes, offset)
+		fmt.Println(data)
+		res.Data = data
 		break
 
 	case common.Append:

@@ -78,11 +78,12 @@ func (client *Client) IssueFileIORequest(op common.Operation, filename string, d
 	defer conn.Close()
 
 	rpcClient := rpc.NewClient(conn)
-	if err := rpcClient.Call(masterRequestMethod, args, &reply); err != nil {
+	if err := rpcClient.Call(chunkserverFileOpMethod, args, &reply); err != nil {
 		return nil, err
 	} else if !reply.Ok {
 		return nil, fmt.Errorf("rpc client failed to make a request")
 	}
+	fmt.Println(reply)
 
 	return reply.Data, nil
 }

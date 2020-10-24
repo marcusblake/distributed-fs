@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	chunkserver = ""
+	chunkserver = "192.168.1.195:8080"
 )
 
 func fail(err error) {

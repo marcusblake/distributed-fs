@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"sync"
 )
@@ -28,7 +29,7 @@ func (fh *FileHandler) Open(filename string) error {
 		return fmt.Errorf("File already open")
 	}
 
-	fp, err := os.OpenFile(filename, os.O_RDWR, 0755)
+	fp, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		return err
 	}
@@ -55,20 +56,23 @@ func (fh *FileHandler) Close(filename string) error {
 
 // Read from a file
 func (fh *FileHandler) Read(filename string, bytes, offset int64) ([]byte, error) {
-	file, err := GetOpenFileSafe(fh, filename, false)
+	_, err := GetOpenFileSafe(fh, filename, false)
 	if err != nil {
 		return nil, err
 	}
 
-	buffer := make([]byte, bytes)
-
-	// Don't need to lock when doing read/write operations since master server will not allow
-	// another process to write and read at the same time
-	if _, err := file.FilePointer.ReadAt(buffer, offset); err != nil && !errors.Is(err, io.EOF) {
+	// buffer := make([]byte, bytes)
+	buffer, err := ioutil.ReadFile(filename)
+	if err != nil {
 		return nil, fmt.Errorf("FileHandler: error reading file %s with %v", filename, err)
 	}
-
-	return nil, nil
+	// Don't need to lock when doing read/write operations since master server will not allow
+	// another process to write and read at the same time
+	// if _, err := file.FilePointer.ReadAt(buffer, offset); err != nil && !errors.Is(err, io.EOF) {
+	// 	return nil, fmt.Errorf("FileHandler: error reading file %s with %v", filename, err)
+	// }
+	fmt.Println(buffer)
+	return buffer, nil
 }
 
 // Write a file
