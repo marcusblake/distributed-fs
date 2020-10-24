@@ -46,6 +46,9 @@ type OperationResponse struct {
 // FileIORequest is a request to make file io operation
 type FileIORequest struct {
 	Operation common.Operation
+	Filename  string
+	Bytes     int64
+	Offset    int64
 	Data      []byte
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/distributed-fs/internal"
 	"github.com/distributed-fs/internal/rpctype"
+	"github.com/distributed-fs/pkg/common"
 )
 
 const (
@@ -14,7 +15,8 @@ const (
 
 // Chunkserver is a struct that represents the chunks
 type Chunkserver struct {
-	files map[string]bool
+	files   map[string]bool
+	handler FileHandler
 	*rpctype.RPCServer
 }
 
@@ -22,6 +24,7 @@ type Chunkserver struct {
 func NewChunkserver() *Chunkserver {
 	chunkserver := &Chunkserver{
 		make(map[string]bool),
+		FileHandler{},
 		rpctype.NewRPCServer(),
 	}
 	rpc.Register(chunkserver)
@@ -58,16 +61,40 @@ func RegisterChunkserver(masterAddress string, chunkserverAddress string) error 
 }
 
 // FileIORequest handles request to perform operations on files from client
-func FileIORequest(req *rpctype.FileIORequest, res *rpctype.FileIOResponse) error {
-	// switch operation {
-	// case cmn.Open:
-	// 	fmt.
-	// case cmn.Close:
-	// case cmn.Read:
-	// case cmn.Append:
-	// case cmn.Delete:
-	// case cmn.Snapshot:
-	// }
+func (chunk *Chunkserver) FileIORequest(req *rpctype.FileIORequest, res *rpctype.FileIOResponse) error {
+	operation := req.Operation
+	filename := req.Filename
+	bytes := req.Bytes
+	offset := req.Offset
+	data := req.Data
+
+	var err error
+
+	switch operation {
+	case common.Open:
+		err = chunk.handler.Open(filename)
+		break
+
+	case common.Read:
+		data, err = chunk.handler.Read(filename, bytes, offset)
+		break
+
+	case common.Append:
+		err = chunk.handler.Write(filename, data, 0)
+		break
+
+	case common.Close:
+		err = chunk.handler.Close(filename)
+		break
+
+	default:
+	}
+
+	if err != nil {
+		res.Ok = false
+		return err
+	}
+
 	res.Ok = true
 	return nil
 }

@@ -59,6 +59,30 @@ func (client *Client) IssueOperationRequest(op common.Operation, filename string
 }
 
 // IssueFileIORequest issues a request to a chunkserver to get file data or
-func (client *Client) IssueFileIORequest(op common.Operation, filename string, offset uint32, chunkserverAddress string) ([]byte, error) {
-	return nil, nil
+func (client *Client) IssueFileIORequest(op common.Operation, filename string, data []byte, n, offset int64, chunkserverAddress string) ([]byte, error) {
+	args := &rpctype.FileIORequest{
+		Operation: op,
+		Offset:    offset,
+		Filename:  filename,
+		Data:      data,
+	}
+
+	var reply rpctype.FileIOResponse
+
+	conn, err := net.DialTimeout("tcp", chunkserverAddress, client.ConnTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	// Close TCP connection when done
+	defer conn.Close()
+
+	rpcClient := rpc.NewClient(conn)
+	if err := rpcClient.Call(masterRequestMethod, args, &reply); err != nil {
+		return nil, err
+	} else if !reply.Ok {
+		return nil, fmt.Errorf("rpc client failed to make a request")
+	}
+
+	return reply.Data, nil
 }
