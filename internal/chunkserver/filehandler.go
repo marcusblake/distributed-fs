@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sync"
 )
@@ -56,27 +55,25 @@ func (fh *FileHandler) Close(filename string) error {
 
 // Read from a file
 func (fh *FileHandler) Read(filename string, bytes, offset int64) ([]byte, error) {
-	_, err := GetOpenFileSafe(fh, filename, false)
+	file, err := GetOpenFileSafe(fh, filename, false)
 	if err != nil {
 		return nil, err
 	}
 
-	// buffer := make([]byte, bytes)
-	buffer, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("FileHandler: error reading file %s with %v", filename, err)
-	}
+	buffer := make([]byte, bytes)
+
 	// Don't need to lock when doing read/write operations since master server will not allow
 	// another process to write and read at the same time
-	// if _, err := file.FilePointer.ReadAt(buffer, offset); err != nil && !errors.Is(err, io.EOF) {
-	// 	return nil, fmt.Errorf("FileHandler: error reading file %s with %v", filename, err)
-	// }
+	n, err := file.FilePointer.ReadAt(buffer, offset)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("FileHandler: error reading file %s with %v", filename, err)
+	}
 	fmt.Println(buffer)
-	return buffer, nil
+	return buffer[:n], nil
 }
 
-// Write a file
-func (fh *FileHandler) Write(filename string, buffer []byte, offset int64) error {
+// Append data a file
+func (fh *FileHandler) Append(filename string, buffer []byte) error {
 	file, err := GetOpenFileSafe(fh, filename, false)
 	if err != nil {
 		return err
@@ -84,7 +81,7 @@ func (fh *FileHandler) Write(filename string, buffer []byte, offset int64) error
 
 	// Don't need to lock when doing read/write operations since master server will not allow
 	// another process to write and read at the same time
-	if _, err := file.FilePointer.WriteAt(buffer, offset); err != nil && !errors.Is(err, io.EOF) {
+	if _, err := file.FilePointer.Write(buffer); err != nil && !errors.Is(err, io.EOF) {
 		return fmt.Errorf("FileHandler: error write to file %s with %v", filename, err)
 	}
 

@@ -1,0 +1,5 @@
+deployserver: localhost:8081
+master:
+  port: 8080
+chunkserver:
+  port: 8080

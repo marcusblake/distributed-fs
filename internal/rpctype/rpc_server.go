@@ -33,26 +33,25 @@ func (srv *RPCServer) Start(address string) error {
 		return fmt.Errorf("Error starting RPC server with address %v. Received the following error: %v", address, err)
 	}
 
-	go func() {
-		for {
-			conn, err := srv.ln.Accept()
-			if err != nil {
-				select {
-				case <-srv.shutdown:
-					return
-				default:
-					internal.Warning(err.Error())
-					continue
-				}
+	for {
+		conn, err := srv.ln.Accept()
+		if err != nil {
+			select {
+			case <-srv.shutdown:
+				break
+			default:
+				internal.Warning(err.Error())
+				continue
 			}
-
-			srv.wg.Add(1)
-			go func() {
-				rpc.ServeConn(conn)
-				srv.wg.Done()
-			}()
 		}
-	}()
+
+		srv.wg.Add(1)
+		go func() {
+			rpc.ServeConn(conn)
+			srv.wg.Done()
+		}()
+	}
+
 	return nil
 }
 

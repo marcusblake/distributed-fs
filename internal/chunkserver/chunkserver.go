@@ -68,34 +68,24 @@ func RegisterChunkserver(masterAddress string, chunkserverAddress string) error 
 
 // FileIORequest handles request to perform operations on files from client
 func (chunk *Chunkserver) FileIORequest(req *rpctype.FileIORequest, res *rpctype.FileIOResponse) error {
-	internal.Warning("received request")
+	var err error
+	var responseData []byte
+
 	operation := req.Operation
 	filename := req.Filename
 	bytes := req.Bytes
 	offset := req.Offset
 	data := req.Data
 
-	var err error
-
 	switch operation {
 	case common.Open:
 		err = chunk.handler.Open(filename)
-		break
-
 	case common.Read:
-		data, err = chunk.handler.Read(filename, bytes, offset)
-		fmt.Println(data)
-		res.Data = data
-		break
-
+		responseData, err = chunk.handler.Read(filename, bytes, offset)
 	case common.Append:
-		err = chunk.handler.Write(filename, data, 0)
-		break
-
+		err = chunk.handler.Append(filename, data)
 	case common.Close:
 		err = chunk.handler.Close(filename)
-		break
-
 	default:
 	}
 
@@ -104,6 +94,7 @@ func (chunk *Chunkserver) FileIORequest(req *rpctype.FileIORequest, res *rpctype
 		return err
 	}
 
+	res.Data = responseData
 	res.Ok = true
 	return nil
 }

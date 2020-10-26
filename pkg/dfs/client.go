@@ -13,7 +13,7 @@ import (
 const (
 	masterRequestMethod     = "Master.OperationRequest"
 	chunkserverFileOpMethod = "Chunkserver.FileIORequest"
-	defaultTimeout          = 20 * time.Second
+	defaultTimeout          = 10 * time.Second
 )
 
 // Client is a struct that represents the DFS client
@@ -59,9 +59,10 @@ func (client *Client) IssueOperationRequest(op common.Operation, filename string
 }
 
 // IssueFileIORequest issues a request to a chunkserver to get file data or
-func (client *Client) IssueFileIORequest(op common.Operation, filename string, data []byte, n, offset int64, chunkserverAddress string) ([]byte, error) {
+func issueFileIORequest(client *Client, op common.Operation, filename string, data []byte, bytes, offset int64, chunkserverAddress string) ([]byte, error) {
 	args := &rpctype.FileIORequest{
 		Operation: op,
+		Bytes:     bytes,
 		Offset:    offset,
 		Filename:  filename,
 		Data:      data,
@@ -86,4 +87,27 @@ func (client *Client) IssueFileIORequest(op common.Operation, filename string, d
 	fmt.Println(reply)
 
 	return reply.Data, nil
+}
+
+// Open opens a file on the chunkserver
+func (client *Client) Open(filename string, chunkserver string) error {
+	_, err := issueFileIORequest(client, common.Open, filename, nil, 0, 0, chunkserver)
+	return err
+}
+
+// Close closes a file on the chunkserver
+func (client *Client) Close(filename string, chunkserver string) error {
+	_, err := issueFileIORequest(client, common.Close, filename, nil, 0, 0, chunkserver)
+	return err
+}
+
+// Read reads a file on the chunkserver
+func (client *Client) Read(filename string, bytes, offset int64, chunkserver string) ([]byte, error) {
+	return issueFileIORequest(client, common.Read, filename, nil, bytes, offset, chunkserver)
+}
+
+// Append reads a file on the chunkserver
+func (client *Client) Append(filename string, data []byte, chunkserver string) error {
+	_, err := issueFileIORequest(client, common.Append, filename, data, 0, 0, chunkserver)
+	return err
 }
