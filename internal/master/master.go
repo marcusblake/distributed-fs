@@ -1,12 +1,11 @@
 package master
 
 import (
-	"fmt"
 	"net/rpc"
 	"time"
 
-	"github.com/distributed-fs/internal"
 	"github.com/distributed-fs/internal/rpctype"
+	"github.com/distributed-fs/pkg/logger"
 )
 
 // Master is a struct representing master server
@@ -60,7 +59,7 @@ func (mstr *Master) ChunkserverRegistration(req *rpctype.ChunkserverRegisterRequ
 		make(map[string]bool),
 	}
 	mstr.Chunkservers[chunkserverAddr] = info
-	internal.Success(fmt.Sprintf("successfully registered chunkserver %v", chunkserverAddr))
+	logger.Successf("successfully registered chunkserver %v", chunkserverAddr)
 	res.Ok = true
 	return nil
 }

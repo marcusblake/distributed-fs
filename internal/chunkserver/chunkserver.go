@@ -5,9 +5,9 @@ import (
 	"net/rpc"
 	"sync"
 
-	"github.com/distributed-fs/internal"
 	"github.com/distributed-fs/internal/rpctype"
 	"github.com/distributed-fs/pkg/common"
+	"github.com/distributed-fs/pkg/logger"
 )
 
 const (
@@ -39,7 +39,6 @@ func NewChunkserver() *Chunkserver {
 
 // RegisterChunkserver register the given chunkserver to the master server
 func RegisterChunkserver(masterAddress string, chunkserverAddress string) error {
-	internal.Info("making call to master")
 	// Setup necessary arguments and parameters
 	args := &rpctype.ChunkserverRegisterRequest{
 		ServerAddress: chunkserverAddress,
@@ -59,7 +58,7 @@ func RegisterChunkserver(masterAddress string, chunkserverAddress string) error 
 		return err
 	} else if !reply.Ok {
 		errMsg := "rpc call to register chunkserver returned as unsuccessful"
-		internal.Failure(errMsg)
+		logger.Failure(errMsg)
 		return fmt.Errorf(errMsg)
 	}
 

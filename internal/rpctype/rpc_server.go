@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/distributed-fs/internal"
+	"github.com/distributed-fs/pkg/logger"
 )
 
 // RPCServer is a struct that will act as an RpcServer for our distrubuted file system
@@ -40,7 +40,7 @@ func (srv *RPCServer) Start(address string) error {
 			case <-srv.shutdown:
 				break
 			default:
-				internal.Warning(err.Error())
+				logger.Warning(err.Error())
 				continue
 			}
 		}

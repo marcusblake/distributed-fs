@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/distributed-fs/internal"
+	"github.com/distributed-fs/pkg/logger"
 )
 
 var (
@@ -14,33 +14,45 @@ var (
 )
 
 const (
-	startChunkserver = "%s/src/github.com/distributed-fs/cmd/startchunkserver/run"
+	startMasterserver = "%s/src/github.com/distributed-fs/cmd/master/run"
+	startChunkserver  = "%s/src/github.com/distributed-fs/cmd/chunkserver/run"
 )
 
+func StartServer(port string, program string) error {
+	if port == "" {
+		return fmt.Errorf("Must provide port")
+	}
+
+	cmd := exec.Command(program, port)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("Failed to run chunkserver: %s", err.Error())
+	}
+
+	return cmd.Process.Release()
+}
+
 func StartMaster(res http.ResponseWriter, req *http.Request) {
+	program := fmt.Sprintf(startMasterserver, gopath)
+	logger.Infof("Received request to start master server from %s", req.RemoteAddr)
+	port := req.FormValue("Port")
+	if err := StartServer(port, program); err != nil {
+		logger.Warning(err.Error())
+		fmt.Fprintf(res, "Failed to run master: %s", err.Error())
+	}
 }
 
 func StartChunkserver(res http.ResponseWriter, req *http.Request) {
 	program := fmt.Sprintf(startChunkserver, gopath)
-	fmt.Println("received request")
+	logger.Infof("Received request to start chunkserver from %s", req.RemoteAddr)
 	port := req.FormValue("Port")
-	if port == "" {
-		fmt.Fprint(res, "Must provide port")
-		fmt.Println("failed")
-		return
+	if err := StartServer(port, program); err != nil {
+		logger.Warning(err.Error())
+		fmt.Fprintf(res, "Failed to run master: %s", err.Error())
 	}
-	cmd := exec.Command(program, port)
-	if err := cmd.Start(); err != nil {
-		fmt.Fprintf(res, "Failed to run chunkserver: %s", err.Error())
-		fmt.Println("Failed to run chunkserver: %s", err.Error())
-	}
-	cmd.Process.Release()
-	internal.Success("success")
 }
 
 func StartApiServer(port string) {
 	gopath = os.Getenv("GOPATH")
-	fmt.Println(gopath)
 	http.HandleFunc("/startmaster", StartMaster)
 	http.HandleFunc("/startchunkserver", StartChunkserver)
 
