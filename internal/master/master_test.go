@@ -39,7 +39,7 @@ func TestOperationRequest(t *testing.T) {
 	// Arrange
 	method := "Master.OperationRequest"
 	args := &rpctype.OperationRequest{
-		Operation: cmn.Open,
+		Operation: cmn.Operation.Open,
 		Offset:    0,
 	}
 	var reply rpctype.OperationResponse

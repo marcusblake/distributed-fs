@@ -32,7 +32,7 @@ type PollChunkserverResponse struct {
 
 // OperationRequest is a request to master from client to perform an operation
 type OperationRequest struct {
-	Operation common.Operation
+	Operation common.FileOperation
 	Offset    uint32
 }
 
@@ -45,7 +45,7 @@ type OperationResponse struct {
 
 // FileIORequest is a request to make file io operation
 type FileIORequest struct {
-	Operation common.Operation
+	Operation common.FileOperation
 	Filename  string
 	Bytes     int64
 	Offset    int64

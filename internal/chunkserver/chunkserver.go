@@ -77,13 +77,13 @@ func (chunk *Chunkserver) FileIORequest(req *rpctype.FileIORequest, res *rpctype
 	data := req.Data
 
 	switch operation {
-	case common.Open:
+	case common.Operation.Open:
 		err = chunk.handler.Open(filename)
-	case common.Read:
+	case common.Operation.Read:
 		responseData, err = chunk.handler.Read(filename, bytes, offset)
-	case common.Append:
+	case common.Operation.Append:
 		err = chunk.handler.Append(filename, data)
-	case common.Close:
+	case common.Operation.Close:
 		err = chunk.handler.Close(filename)
 	default:
 	}
