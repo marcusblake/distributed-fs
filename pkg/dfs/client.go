@@ -31,8 +31,7 @@ func NewClient(address string) *Client {
 }
 
 // IssueOperationRequest issues a request to the master server for an operation
-func (client *Client) IssueOperationRequest(op common.Operation, filename string, offset uint32) (string, error) {
-
+func (client *Client) IssueOperationRequest(op common.FileOperation, filename string, offset uint32) (string, error) {
 	args := &rpctype.OperationRequest{
 		Operation: op,
 		Offset:    offset,
@@ -40,15 +39,14 @@ func (client *Client) IssueOperationRequest(op common.Operation, filename string
 
 	var reply rpctype.OperationResponse
 
-	conn, err := net.DialTimeout("tcp", client.MasterAddress, client.ConnTimeout)
+	rpcClient, err := rpc.DialHTTP("tcp", client.MasterAddress)
 	if err != nil {
 		return "", err
 	}
 
 	// Close TCP connection when done
-	defer conn.Close()
+	defer rpcClient.Close()
 
-	rpcClient := rpc.NewClient(conn)
 	if err := rpcClient.Call(masterRequestMethod, args, &reply); err != nil {
 		return "", err
 	} else if !reply.Ok {
@@ -59,7 +57,7 @@ func (client *Client) IssueOperationRequest(op common.Operation, filename string
 }
 
 // IssueFileIORequest issues a request to a chunkserver to get file data or
-func issueFileIORequest(client *Client, op common.Operation, filename string, data []byte, bytes, offset int64, chunkserverAddress string) ([]byte, error) {
+func issueFileIORequest(client *Client, op common.FileOperation, filename string, data []byte, bytes, offset int64, chunkserverAddress string) ([]byte, error) {
 	args := &rpctype.FileIORequest{
 		Operation: op,
 		Bytes:     bytes,
@@ -91,23 +89,23 @@ func issueFileIORequest(client *Client, op common.Operation, filename string, da
 
 // Open opens a file on the chunkserver
 func (client *Client) Open(filename string, chunkserver string) error {
-	_, err := issueFileIORequest(client, common.Open, filename, nil, 0, 0, chunkserver)
+	_, err := issueFileIORequest(client, common.Operation.Open, filename, nil, 0, 0, chunkserver)
 	return err
 }
 
 // Close closes a file on the chunkserver
 func (client *Client) Close(filename string, chunkserver string) error {
-	_, err := issueFileIORequest(client, common.Close, filename, nil, 0, 0, chunkserver)
+	_, err := issueFileIORequest(client, common.Operation.Close, filename, nil, 0, 0, chunkserver)
 	return err
 }
 
 // Read reads a file on the chunkserver
 func (client *Client) Read(filename string, bytes, offset int64, chunkserver string) ([]byte, error) {
-	return issueFileIORequest(client, common.Read, filename, nil, bytes, offset, chunkserver)
+	return issueFileIORequest(client, common.Operation.Read, filename, nil, bytes, offset, chunkserver)
 }
 
 // Append reads a file on the chunkserver
 func (client *Client) Append(filename string, data []byte, chunkserver string) error {
-	_, err := issueFileIORequest(client, common.Append, filename, data, 0, 0, chunkserver)
+	_, err := issueFileIORequest(client, common.Operation.Append, filename, data, 0, 0, chunkserver)
 	return err
 }

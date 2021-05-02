@@ -1,10 +1,15 @@
 package rpctype
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net"
+	"net/http"
 	"net/rpc"
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/distributed-fs/pkg/logger"
@@ -12,16 +17,18 @@ import (
 
 // RPCServer is a struct that will act as an RpcServer for our distrubuted file system
 type RPCServer struct {
-	shutdown chan bool
+	shutdown chan os.Signal
+	server   http.Server
 	ln       net.Listener
-	wg       sync.WaitGroup
 }
 
 // NewRPCServer creates allocates and initializes an instance of RpcServer
 func NewRPCServer() *RPCServer {
 	srv := new(RPCServer)
-	srv.shutdown = make(chan bool)
-	srv.wg = sync.WaitGroup{}
+	srv.shutdown = make(chan os.Signal, 1)
+	signal.Notify(srv.shutdown, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	srv.server = http.Server{}
+	rpc.HandleHTTP()
 	return srv
 }
 
@@ -30,48 +37,29 @@ func (srv *RPCServer) Start(address string) error {
 	var err error
 	srv.ln, err = net.Listen("tcp", address)
 	if err != nil {
-		return fmt.Errorf("Error starting RPC server with address %v. Received the following error: %v", address, err)
+		return fmt.Errorf("error starting RPC server with address %v. Received the following error: %v", address, err)
 	}
 
-	for {
-		conn, err := srv.ln.Accept()
-		if err != nil {
-			select {
-			case <-srv.shutdown:
-				break
-			default:
-				logger.Warning(err.Error())
-				continue
+	go func() {
+		go func() {
+			if err := srv.server.Serve(srv.ln); err != nil {
+				log.Fatal("http server couldn't be started")
 			}
+		}()
+
+		<-srv.shutdown
+
+		shutdownWithTime, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer func() {
+			cancel()
+		}()
+
+		if err := srv.server.Shutdown(shutdownWithTime); err != nil {
+			logger.Info("http server shutdown")
 		}
 
-		srv.wg.Add(1)
-		go func() {
-			rpc.ServeConn(conn)
-			srv.wg.Done()
-		}()
-	}
-
-	return nil
-}
-
-// Stop function stops the RPCServer from running
-func (srv *RPCServer) Stop() error {
-	c := make(chan struct{})
-
-	// Send signal to shutdown and wait until all running tasks are completed
-	go func() {
-		srv.shutdown <- true
-		srv.wg.Wait()
-		c <- struct{}{}
+		os.Exit(0)
 	}()
 
-	srv.ln.Close()
-
-	select {
-	case <-c:
-	case <-time.After(10 * time.Second):
-		return fmt.Errorf("RPCServer failed to shut off after 10 seconds")
-	}
 	return nil
 }

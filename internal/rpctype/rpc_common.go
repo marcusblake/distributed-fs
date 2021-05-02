@@ -2,12 +2,12 @@ package rpctype
 
 import (
 	"github.com/distributed-fs/pkg/common"
+	"github.com/google/uuid"
 )
 
 // Server is an interface for RPC servers to use
 type Server interface {
 	Start(address string) error
-	Stop() error
 }
 
 // ChunkserverRegisterRequest is a struct that will be used to register a chunkserver to master when it spawns
@@ -32,8 +32,10 @@ type PollChunkserverResponse struct {
 
 // OperationRequest is a request to master from client to perform an operation
 type OperationRequest struct {
-	Operation common.Operation
-	Offset    uint32
+	ApplicationId uuid.UUID
+	Operation     common.FileOperation
+	Permissions   map[common.PermissionGroup]common.PermissionType
+	Offset        uint32
 }
 
 // OperationResponse is a reponse to the client indicate which chunkserver to use to make request
@@ -45,11 +47,12 @@ type OperationResponse struct {
 
 // FileIORequest is a request to make file io operation
 type FileIORequest struct {
-	Operation common.Operation
-	Filename  string
-	Bytes     int64
-	Offset    int64
-	Data      []byte
+	ApplicationId uuid.UUID
+	Operation     common.FileOperation
+	Filename      string
+	Bytes         int64
+	Offset        int64
+	Data          []byte
 }
 
 // FileIOResponse is a response from a chunkserver when a request is made for a file operation
