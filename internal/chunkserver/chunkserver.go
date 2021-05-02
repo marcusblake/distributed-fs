@@ -45,7 +45,7 @@ func RegisterChunkserver(masterAddress string, chunkserverAddress string) error 
 	}
 	var reply rpctype.ChunkserverRegisterResponse
 
-	registerClient, err := rpc.Dial("tcp", masterAddress)
+	registerClient, err := rpc.DialHTTP("tcp", masterAddress)
 	if err != nil {
 		return err
 	}

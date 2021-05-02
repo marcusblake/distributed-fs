@@ -35,13 +35,6 @@ func TestRegistrationToMaster(t *testing.T) {
 		t.Fatal("master server failed to start")
 	}
 
-	// Gracefully shutdown master server once test method is complete
-	defer func() {
-		if err := master.Stop(); err != nil {
-			t.Fatalf("master server failed to stop %v", err.Error())
-		}
-	}()
-
 	// Act
 	if err := RegisterChunkserver(masterAddress, chunkserverAddress); err != nil {
 		t.Fatalf("ChunkserverRegistration failed with %v", err.Error())

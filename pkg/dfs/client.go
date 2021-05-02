@@ -32,7 +32,6 @@ func NewClient(address string) *Client {
 
 // IssueOperationRequest issues a request to the master server for an operation
 func (client *Client) IssueOperationRequest(op common.FileOperation, filename string, offset uint32) (string, error) {
-
 	args := &rpctype.OperationRequest{
 		Operation: op,
 		Offset:    offset,
@@ -40,15 +39,14 @@ func (client *Client) IssueOperationRequest(op common.FileOperation, filename st
 
 	var reply rpctype.OperationResponse
 
-	conn, err := net.DialTimeout("tcp", client.MasterAddress, client.ConnTimeout)
+	rpcClient, err := rpc.DialHTTP("tcp", client.MasterAddress)
 	if err != nil {
 		return "", err
 	}
 
 	// Close TCP connection when done
-	defer conn.Close()
+	defer rpcClient.Close()
 
-	rpcClient := rpc.NewClient(conn)
 	if err := rpcClient.Call(masterRequestMethod, args, &reply); err != nil {
 		return "", err
 	} else if !reply.Ok {
