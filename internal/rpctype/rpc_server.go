@@ -42,7 +42,7 @@ func (srv *RPCServer) Start(address string) error {
 
 	go func() {
 		go func() {
-			if err := http.Serve(srv.ln, nil); err != nil {
+			if err := srv.server.Serve(srv.ln); err != nil {
 				log.Fatal("http server couldn't be started")
 			}
 		}()
