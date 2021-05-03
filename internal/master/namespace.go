@@ -2,7 +2,8 @@ package master
 
 // Namespace is a struct which will contains the file namespace as a tree
 type Namespace struct {
-	root *Node
+	root  *Node
+	files map[string]*File // Keep this for now until namespace tree is implemented
 }
 
 // Node is a node in the namespace tree
@@ -18,7 +19,13 @@ func NewNamespace() *Namespace {
 			Name:     "/",
 			Children: []*Node{},
 		},
+		make(map[string]*File),
 	}
+}
+
+func (nspace *Namespace) GetFileInformation(filename string) (*File, bool) {
+	file, ok := nspace.files[filename]
+	return file, ok
 }
 
 // Open opens a file in the namespace

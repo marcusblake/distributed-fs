@@ -1,10 +1,13 @@
 package master
 
 import (
+	"errors"
 	"net/rpc"
 	"time"
 
 	"github.com/distributed-fs/internal/rpctype"
+	"github.com/distributed-fs/internal/security"
+	"github.com/distributed-fs/pkg/common"
 	"github.com/distributed-fs/pkg/logger"
 )
 
@@ -45,6 +48,34 @@ func (mstr *Master) OperationRequest(req *rpctype.OperationRequest, res *rpctype
 	// case cmn.Delete:
 	// case cmn.Snapshot:
 	// }
+
+	appId := req.ApplicationId
+	filename := req.Filename
+
+	var allowedPermissions common.PermissionType = 0
+	if file, ok := mstr.namespace.GetFileInformation(filename); ok {
+		appIdAsString := appId.String()
+		if file.owner == appIdAsString {
+			allowedPermissions = file.permissions[common.GroupPermissions.Application]
+		} else if file.group[appIdAsString] {
+			allowedPermissions = file.permissions[common.GroupPermissions.ApplicationGroup]
+		} else {
+			allowedPermissions = file.permissions[common.GroupPermissions.All]
+		}
+
+		requestedPermission := common.OperationToPermissionType(req.Operation)
+		if allowedPermissions&requestedPermission == 0 {
+			res.Ok = false
+			return errors.New("application does not have permission to perform requested operation on this file")
+		}
+	}
+
+	token, err := security.CreateToken(appId, filename, allowedPermissions)
+	if err != nil {
+		res.Ok = false
+	}
+
+	res.Token = token
 	res.Ok = true
 	return nil
 }
