@@ -34,6 +34,7 @@ type PollChunkserverResponse struct {
 type OperationRequest struct {
 	ApplicationId uuid.UUID
 	Operation     common.FileOperation
+	Filename      string
 	Permissions   map[common.PermissionGroup]common.PermissionType
 	Offset        uint32
 }
@@ -42,12 +43,14 @@ type OperationRequest struct {
 type OperationResponse struct {
 	IPAddress string
 	Port      uint16
+	Token     string
 	Ok        bool
 }
 
 // FileIORequest is a request to make file io operation
 type FileIORequest struct {
 	ApplicationId uuid.UUID
+	Token         string
 	Operation     common.FileOperation
 	Filename      string
 	Bytes         int64

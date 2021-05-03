@@ -1,8 +1,11 @@
 package master
 
+import "github.com/distributed-fs/pkg/common"
+
 // Namespace is a struct which will contains the file namespace as a tree
 type Namespace struct {
-	root *Node
+	root  *Node
+	files map[string]*File // Keep this for now until namespace tree is implemented
 }
 
 // Node is a node in the namespace tree
@@ -18,7 +21,21 @@ func NewNamespace() *Namespace {
 			Name:     "/",
 			Children: []*Node{},
 		},
+		map[string]*File{
+			"test": {
+				name:  "test",
+				owner: "1",
+				permissions: map[common.PermissionGroup]common.PermissionType{
+					common.GroupPermissions.Application: common.Permission.Read | common.Permission.Write,
+				},
+			},
+		},
 	}
+}
+
+func (nspace *Namespace) GetFileInformation(filename string) (*File, bool) {
+	file, ok := nspace.files[filename]
+	return file, ok
 }
 
 // Open opens a file in the namespace

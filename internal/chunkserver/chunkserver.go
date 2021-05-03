@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/distributed-fs/internal/rpctype"
+	"github.com/distributed-fs/internal/security"
 	"github.com/distributed-fs/pkg/common"
 	"github.com/distributed-fs/pkg/logger"
 )
@@ -75,6 +76,14 @@ func (chunk *Chunkserver) FileIORequest(req *rpctype.FileIORequest, res *rpctype
 	bytes := req.Bytes
 	offset := req.Offset
 	data := req.Data
+	token := req.Token
+	appId := req.ApplicationId
+
+	err = security.VerifyToken(token, appId, filename, operation)
+	if err != nil {
+		res.Ok = false
+		return err
+	}
 
 	switch operation {
 	case common.Operation.Open:

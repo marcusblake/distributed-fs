@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/akamensky/argparse v1.2.2
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fatih/color v1.9.0
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/google/uuid v1.2.0
