@@ -27,3 +27,14 @@ var Permission = struct {
 	Write:  1 << 1,
 	Delete: 1 << 2,
 }
+
+func OperationToPermissionType(op FileOperation) PermissionType {
+	switch op {
+	case Operation.Delete:
+		return Permission.Delete
+	case Operation.Append:
+		return Permission.Write
+	default:
+		return Permission.Read
+	}
+}

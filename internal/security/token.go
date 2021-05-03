@@ -61,11 +61,12 @@ func VerifyToken(tokenString string, appId uuid.UUID, filename string, operation
 	})
 
 	if claims, ok := token.Claims.(*RequestClaim); ok && token.Valid {
+		permissionType := common.OperationToPermissionType(operation)
 		if claims.ApplicationId != appId.String() {
 			return errors.New("invalid application id")
 		} else if claims.Filename != filename {
 			return errors.New("invalid filename")
-		} else if claims.PermittedOps&common.PermissionType(operation) == 0 {
+		} else if claims.PermittedOps&permissionType == 0 {
 			return errors.New("invalid operation")
 		} else {
 			return nil

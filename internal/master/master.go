@@ -1,6 +1,7 @@
 package master
 
 import (
+	"errors"
 	"net/rpc"
 	"time"
 
@@ -51,19 +52,25 @@ func (mstr *Master) OperationRequest(req *rpctype.OperationRequest, res *rpctype
 	appId := req.ApplicationId
 	filename := req.Filename
 
-	var permissions common.PermissionType = 0
+	var allowedPermissions common.PermissionType = 0
 	if file, ok := mstr.namespace.GetFileInformation(filename); ok {
 		appIdAsString := appId.String()
 		if file.owner == appIdAsString {
-			permissions = file.permissions[common.GroupPermissions.Application]
+			allowedPermissions = file.permissions[common.GroupPermissions.Application]
 		} else if file.group[appIdAsString] {
-			permissions = file.permissions[common.GroupPermissions.ApplicationGroup]
+			allowedPermissions = file.permissions[common.GroupPermissions.ApplicationGroup]
 		} else {
-			permissions = file.permissions[common.GroupPermissions.All]
+			allowedPermissions = file.permissions[common.GroupPermissions.All]
+		}
+
+		requestedPermission := common.OperationToPermissionType(req.Operation)
+		if allowedPermissions&requestedPermission == 0 {
+			res.Ok = false
+			return errors.New("application does not have permission to perform requested operation on this file")
 		}
 	}
 
-	token, err := security.CreateToken(appId, filename, permissions)
+	token, err := security.CreateToken(appId, filename, allowedPermissions)
 	if err != nil {
 		res.Ok = false
 	}
