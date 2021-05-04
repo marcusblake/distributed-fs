@@ -43,5 +43,5 @@ func TestRegistrationToMaster(t *testing.T) {
 	}
 
 	// Assert
-	assert.Contains(t, master.Chunkservers, chunkserverAddress)
+	assert.True(t, master.Chunkservers.Contains(chunkserverAddress))
 }

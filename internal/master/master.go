@@ -5,6 +5,7 @@ import (
 	"net/rpc"
 	"time"
 
+	ds "github.com/distributed-fs/internal/datastructures"
 	"github.com/distributed-fs/internal/rpctype"
 	"github.com/distributed-fs/internal/security"
 	"github.com/distributed-fs/pkg/common"
@@ -14,7 +15,7 @@ import (
 // Master is a struct representing master server
 type Master struct {
 	namespace    *Namespace
-	Chunkservers map[string]ChunkserverInfo
+	Chunkservers *ds.ConcurrentDictionary
 	*rpctype.RPCServer
 }
 
@@ -29,7 +30,7 @@ type ChunkserverInfo struct {
 func NewMaster() *Master {
 	master := &Master{
 		NewNamespace(),
-		make(map[string]ChunkserverInfo),
+		ds.NewDictionary(),
 		rpctype.NewRPCServer(),
 	}
 	rpc.Register(master)
@@ -89,8 +90,12 @@ func (mstr *Master) ChunkserverRegistration(req *rpctype.ChunkserverRegisterRequ
 		0,
 		make(map[string]bool),
 	}
-	mstr.Chunkservers[chunkserverAddr] = info
+	mstr.Chunkservers.Put(chunkserverAddr, info)
 	logger.Successf("successfully registered chunkserver %v", chunkserverAddr)
 	res.Ok = true
 	return nil
+}
+
+func SendHeartbeat(master *Master) {
+
 }
