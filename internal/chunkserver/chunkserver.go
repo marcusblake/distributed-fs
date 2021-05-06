@@ -9,6 +9,7 @@ import (
 	"github.com/distributed-fs/internal/security"
 	"github.com/distributed-fs/pkg/common"
 	"github.com/distributed-fs/pkg/logger"
+	"github.com/hashicorp/raft"
 )
 
 const (
@@ -19,6 +20,7 @@ const (
 type Chunkserver struct {
 	files   map[string]bool
 	handler *FileHandler
+	raft    *raft.Raft
 	*rpctype.RPCServer
 }
 
@@ -32,6 +34,7 @@ func NewChunkserver() *Chunkserver {
 	chunkserver := &Chunkserver{
 		make(map[string]bool),
 		fileHandler,
+		NewRaft(),
 		rpctype.NewRPCServer(),
 	}
 	rpc.Register(chunkserver)

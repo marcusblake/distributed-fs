@@ -8,6 +8,7 @@ import (
 // Server is an interface for RPC servers to use
 type Server interface {
 	Start(address string) error
+	Shutdown()
 }
 
 // ChunkserverRegisterRequest is a struct that will be used to register a chunkserver to master when it spawns

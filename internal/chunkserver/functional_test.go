@@ -3,31 +3,18 @@
 package chunkserver
 
 import (
-	"os"
 	"testing"
 
 	"github.com/distributed-fs/internal/master"
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	ChunkserverAddress = "localhost:8080"
+)
+
 var chunkserver *Chunkserver
 var chunkserverAddress string
-
-func TestMain(m *testing.M) {
-	setup()
-	code := m.Run()
-	teardown()
-	os.Exit(code)
-}
-
-func setup() {
-	chunkserverAddress = "localhost:8080"
-
-}
-
-func teardown() {
-
-}
 
 func TestRegistrationToMaster(t *testing.T) {
 	// Arrange
@@ -37,6 +24,8 @@ func TestRegistrationToMaster(t *testing.T) {
 		t.Fatal("master server failed to start")
 	}
 
+	//defer master.Shutdown()
+
 	// Act
 	if err := RegisterChunkserver(masterAddress, chunkserverAddress); err != nil {
 		t.Fatalf("ChunkserverRegistration failed with %v", err.Error())
@@ -44,4 +33,8 @@ func TestRegistrationToMaster(t *testing.T) {
 
 	// Assert
 	assert.Contains(t, master.Chunkservers, chunkserverAddress)
+}
+
+func TestLeaderElection(t *testing.T) {
+
 }

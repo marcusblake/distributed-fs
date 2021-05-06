@@ -7,9 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/rpc"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/distributed-fs/pkg/logger"
@@ -17,7 +14,7 @@ import (
 
 // RPCServer is a struct that will act as an RpcServer for our distrubuted file system
 type RPCServer struct {
-	shutdown chan os.Signal
+	shutdown chan bool
 	server   http.Server
 	ln       net.Listener
 }
@@ -25,8 +22,6 @@ type RPCServer struct {
 // NewRPCServer creates allocates and initializes an instance of RpcServer
 func NewRPCServer() *RPCServer {
 	srv := new(RPCServer)
-	srv.shutdown = make(chan os.Signal, 1)
-	signal.Notify(srv.shutdown, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	srv.server = http.Server{}
 	rpc.HandleHTTP()
 	return srv
@@ -40,10 +35,11 @@ func (srv *RPCServer) Start(address string) error {
 		return fmt.Errorf("error starting RPC server with address %v. Received the following error: %v", address, err)
 	}
 
+	srv.shutdown = make(chan bool, 1)
 	go func() {
 		go func() {
-			if err := srv.server.Serve(srv.ln); err != nil {
-				log.Fatal("http server couldn't be started")
+			if err := srv.server.Serve(srv.ln); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("an error occurred running the http server %v", err)
 			}
 		}()
 
@@ -57,9 +53,12 @@ func (srv *RPCServer) Start(address string) error {
 		if err := srv.server.Shutdown(shutdownWithTime); err != nil {
 			logger.Info("http server shutdown")
 		}
-
-		os.Exit(0)
 	}()
 
 	return nil
+}
+
+func (srv *RPCServer) Shutdown() {
+	srv.shutdown <- true
+	close(srv.shutdown)
 }

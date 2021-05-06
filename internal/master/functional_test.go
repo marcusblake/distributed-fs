@@ -19,6 +19,7 @@ const address = ":8080"
 func TestMain(m *testing.M) {
 	setup()
 	code := m.Run()
+	shutdown()
 	os.Exit(code)
 }
 
@@ -27,6 +28,10 @@ func setup() {
 	if err := master.Start(address); err != nil {
 		panic("master server failed to start")
 	}
+}
+
+func shutdown() {
+	master.Shutdown()
 }
 
 func TestOperationRequest(t *testing.T) {
