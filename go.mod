@@ -10,5 +10,6 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/tools v0.1.0
+	google.golang.org/grpc v1.37.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
