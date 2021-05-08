@@ -9,6 +9,7 @@ require (
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/raft v1.3.1
+	github.com/hashicorp/raft-boltdb v0.0.0-20210422161416-485fa74b0b01
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/tools v0.1.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
