@@ -3,13 +3,12 @@
 package master
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
 
-	"github.com/distributed-fs/internal/rpctype"
 	"github.com/distributed-fs/pkg/common"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +17,7 @@ const (
 )
 
 var master *Master
-var fakeAppId uuid.UUID
+var fakeAppId string
 
 var uuids = []string{
 	"f47ac10b-58cc-0372-8567-0e02b2c3d479",
@@ -36,15 +35,15 @@ func initialize() {
 	master = NewMaster()
 
 	namespace := NewNamespace()
-	fakeAppId, _ = uuid.Parse(uuids[0])
+	fakeAppId = uuids[0]
 	files := map[string]*File{
 		testFile: {
 			name:  testFile,
 			owner: uuids[1],
-			group: map[string]bool{fakeAppId.String(): true},
+			group: map[string]bool{fakeAppId: true},
 			permissions: map[common.PermissionGroup]common.PermissionType{
-				common.GroupPermissions.Application:      common.Permission.Read | common.Permission.Write | common.Permission.Delete,
-				common.GroupPermissions.ApplicationGroup: common.Permission.Read | common.Permission.Write,
+				common.PermissionGroup_Application:      common.PermissionType_Read | common.PermissionType_Write | common.PermissionType_Delete,
+				common.PermissionGroup_ApplicationGroup: common.PermissionType_Read | common.PermissionType_Write,
 			},
 		},
 	}
@@ -54,50 +53,47 @@ func initialize() {
 }
 
 func TestOperationRequest_SucceedsOnRead(t *testing.T) {
-	request := rpctype.OperationRequest{
+	request := ClientRequest{
 		ApplicationId: fakeAppId,
-		Operation:     common.Operation.Open,
+		Operation:     common.OperationType_OPEN,
 		Filename:      testFile,
 	}
 
-	var response rpctype.OperationResponse
-	err := master.OperationRequest(&request, &response)
+	response, err := master.ClientOperationRequest(context.Background(), &request)
 
 	assert.Nil(t, err)
-	assert.True(t, response.Ok)
+	assert.True(t, response.Success)
 	assert.NotNil(t, response.Token)
 	assert.NotEmpty(t, response.Token)
 }
 
 func TestOperationRequest_ReturnsErrorWhenInsufficientPermission(t *testing.T) {
 	var expectedError = errors.New("application does not have permission to perform requested operation on this file")
-	request := rpctype.OperationRequest{
+	request := ClientRequest{
 		ApplicationId: fakeAppId,
-		Operation:     common.Operation.Delete,
+		Operation:     common.OperationType_DELETE,
 		Filename:      testFile,
 	}
 
-	var response rpctype.OperationResponse
-	actualError := master.OperationRequest(&request, &response)
+	response, actualError := master.ClientOperationRequest(context.Background(), &request)
 
 	assert.Error(t, actualError)
 	assert.Equal(t, expectedError, actualError)
-	assert.False(t, response.Ok)
+	assert.False(t, response.Success)
 }
 
 func TestOperationRequest_ReturnsErrorOnAppNotInGroup(t *testing.T) {
 	var expectedError = errors.New("application does not have permission to perform requested operation on this file")
-	newFakeAppId, _ := uuid.Parse(uuids[2])
-	request := rpctype.OperationRequest{
+	newFakeAppId := uuids[2]
+	request := ClientRequest{
 		ApplicationId: newFakeAppId,
-		Operation:     common.Operation.Read,
+		Operation:     common.OperationType_READ,
 		Filename:      testFile,
 	}
 
-	var response rpctype.OperationResponse
-	actualError := master.OperationRequest(&request, &response)
+	response, actualError := master.ClientOperationRequest(context.Background(), &request)
 
 	assert.Error(t, actualError)
 	assert.Equal(t, expectedError, actualError)
-	assert.False(t, response.Ok)
+	assert.False(t, response.Success)
 }

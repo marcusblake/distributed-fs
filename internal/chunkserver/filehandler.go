@@ -54,7 +54,7 @@ func (fh *FileHandler) Close(filename string) error {
 }
 
 // Read from a file
-func (fh *FileHandler) Read(filename string, bytes, offset int64) ([]byte, error) {
+func (fh *FileHandler) Read(filename string, bytes, offset int32) ([]byte, error) {
 	file, err := GetOpenFileSafe(fh, filename, false)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (fh *FileHandler) Read(filename string, bytes, offset int64) ([]byte, error
 
 	// Don't need to lock when doing read/write operations since master server will not allow
 	// another process to write and read at the same time
-	n, err := file.FilePointer.ReadAt(buffer, offset)
+	n, err := file.FilePointer.ReadAt(buffer, int64(offset))
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, fmt.Errorf("FileHandler: error reading file %s with %v", filename, err)
 	}

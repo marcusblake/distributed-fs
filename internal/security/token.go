@@ -6,7 +6,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/distributed-fs/pkg/common"
-	"github.com/google/uuid"
 )
 
 const (
@@ -31,11 +30,11 @@ func getSigningKey() []byte {
 }
 
 // createToken creates a json web token that expires within specified timeout
-func CreateToken(applicationId uuid.UUID, filename string, operations common.PermissionType) (string, error) {
+func CreateToken(applicationId string, filename string, operations common.PermissionType) (string, error) {
 	signedKey := getSigningKey()
 
 	claims := &RequestClaim{
-		applicationId.String(),
+		applicationId,
 		filename,
 		operations,
 		jwt.StandardClaims{
@@ -53,7 +52,7 @@ func CreateToken(applicationId uuid.UUID, filename string, operations common.Per
 	return signedString, nil
 }
 
-func VerifyToken(tokenString string, appId uuid.UUID, filename string, operation common.FileOperation) error {
+func VerifyToken(tokenString string, appId string, filename string, operation common.OperationType) error {
 	signingKey := getSigningKey()
 
 	token, err := jwt.ParseWithClaims(tokenString, &RequestClaim{}, func(t *jwt.Token) (interface{}, error) {
@@ -62,7 +61,7 @@ func VerifyToken(tokenString string, appId uuid.UUID, filename string, operation
 
 	if claims, ok := token.Claims.(*RequestClaim); ok && token.Valid {
 		permissionType := common.OperationToPermissionType(operation)
-		if claims.ApplicationId != appId.String() {
+		if claims.ApplicationId != appId {
 			return errors.New("invalid application id")
 		} else if claims.Filename != filename {
 			return errors.New("invalid filename")

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/distributed-fs/pkg/common";
+
+enum OperationType {
+    OPEN     = 0;
+	CLOSE    = 1;
+	READ     = 2;
+	APPEND   = 3;
+	DELETE   = 4;
+	SNAPSHOT = 5;
+}
