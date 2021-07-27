@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/distributed-fs/pkg/common";
+
+enum PermissionGroup {
+    NONE             = 0;
+    Application      = 1;
+	ApplicationGroup = 2;
+	All              = 4;
+}
+
+enum PermissionType {
+    NONE0   = 0;
+    Read    = 1;
+	Write   = 2;
+	Delete  = 4;
+}

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package chunkserver;
+
+import "pkg/common/operations.proto";
+
+option go_package = "github.com/distributed-fs/internal/chunkserver";
+
+service Chunkserver {
+    rpc ServeClientFileRequest(FileIORequest) returns (FileIOResponse) { }
+}
+
+// FileIORequest is a request to make file io operation
+message FileIORequest {
+	string ApplicationId = 1;
+	string Token = 2;
+	common.OperationType Operation = 3;
+	string Filename = 4;
+	int32 Bytes = 5;
+	int32 Offset = 6;
+	bytes Data = 7;
+}
+
+// FileIOResponse is a response from a chunkserver when a request is made for a file operation
+message FileIOResponse {
+	bytes Data = 1;
+	bool Success = 2;  
+}

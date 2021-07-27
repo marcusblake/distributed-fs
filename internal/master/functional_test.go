@@ -3,13 +3,13 @@
 package master
 
 import (
-	"net/rpc"
+	"context"
 	"os"
 	"testing"
 
-	"github.com/distributed-fs/internal/rpctype"
 	cmn "github.com/distributed-fs/pkg/common"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 )
 
 var master *Master
@@ -31,29 +31,28 @@ func setup() {
 
 func TestOperationRequest(t *testing.T) {
 	// Arrange
-	method := "Master.OperationRequest"
-	args := &rpctype.OperationRequest{
-		Operation: cmn.Operation.Open,
+	args := ClientRequest{
+		Operation: cmn.OperationType_OPEN,
 		Offset:    0,
 	}
-	var reply rpctype.OperationResponse
 
-	testClient, err := rpc.DialHTTP("tcp", address)
-	if err != nil {
-		t.Fatal("client setup failed")
+	dialOptions := []grpc.DialOption{
+		grpc.WithInsecure(),
 	}
 
-	defer func() {
-		if err := testClient.Close(); err != nil {
-			t.Fatal("client couldn't close the connection")
-		}
-	}()
+	conn, err := grpc.Dial(address, dialOptions...)
+	if err != nil {
+		t.Fatal("client setup failed", err)
+	}
+
+	defer conn.Close()
+
+	masterClient := NewMasterClient(conn)
 
 	// Act
-	if err := testClient.Call(method, args, &reply); err != nil {
-		t.Fatal("client call failed")
-	}
+	reply, err := masterClient.ClientOperationRequest(context.Background(), &args)
 
 	// Assert
-	assert.True(t, reply.Ok)
+	assert.Nil(t, err)
+	assert.True(t, reply.Success)
 }

@@ -1,34 +1,45 @@
 package rpctype
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net"
-	"net/http"
-	"net/rpc"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/distributed-fs/pkg/logger"
+	"google.golang.org/grpc"
+)
+
+const (
+	defaultTimeout = time.Duration(1 * time.Minute)
+)
+
+var (
+	defaultServerOptions = []grpc.ServerOption{
+		grpc.ConnectionTimeout(defaultTimeout),
+	}
 )
 
 // RPCServer is a struct that will act as an RpcServer for our distrubuted file system
 type RPCServer struct {
 	shutdown chan os.Signal
-	server   http.Server
+	Server   *grpc.Server
 	ln       net.Listener
 }
 
 // NewRPCServer creates allocates and initializes an instance of RpcServer
-func NewRPCServer() *RPCServer {
+func NewRPCServer(serverOptions []grpc.ServerOption) *RPCServer {
 	srv := new(RPCServer)
 	srv.shutdown = make(chan os.Signal, 1)
 	signal.Notify(srv.shutdown, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	srv.server = http.Server{}
-	rpc.HandleHTTP()
+
+	if len(serverOptions) == 0 {
+		serverOptions = defaultServerOptions
+	}
+
+	srv.Server = grpc.NewServer(serverOptions...)
 	return srv
 }
 
@@ -42,21 +53,14 @@ func (srv *RPCServer) Start(address string) error {
 
 	go func() {
 		go func() {
-			if err := srv.server.Serve(srv.ln); err != nil {
+			if err := srv.Server.Serve(srv.ln); err != nil {
 				log.Fatal("http server couldn't be started")
 			}
 		}()
 
 		<-srv.shutdown
 
-		shutdownWithTime, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer func() {
-			cancel()
-		}()
-
-		if err := srv.server.Shutdown(shutdownWithTime); err != nil {
-			logger.Info("http server shutdown")
-		}
+		srv.Server.Stop()
 
 		os.Exit(0)
 	}()

@@ -1,8 +1,8 @@
 package master
 
 import (
+	"context"
 	"errors"
-	"net/rpc"
 	"time"
 
 	"github.com/distributed-fs/internal/rpctype"
@@ -16,6 +16,7 @@ type Master struct {
 	namespace    *Namespace
 	Chunkservers map[string]ChunkserverInfo
 	*rpctype.RPCServer
+	UnimplementedMasterServer
 }
 
 // ChunkserverInfo stores information regarding the state and properties of the server
@@ -30,14 +31,15 @@ func NewMaster() *Master {
 	master := &Master{
 		NewNamespace(),
 		make(map[string]ChunkserverInfo),
-		rpctype.NewRPCServer(),
+		rpctype.NewRPCServer(nil),
+		UnimplementedMasterServer{},
 	}
-	rpc.Register(master)
+	RegisterMasterServer(master.Server, master)
 	return master
 }
 
-// OperationRequest is the function to be called when a request is made
-func (mstr *Master) OperationRequest(req *rpctype.OperationRequest, res *rpctype.OperationResponse) error {
+// ClientOperationRequest is the function to be called when a request is made
+func (mstr *Master) ClientOperationRequest(context context.Context, req *ClientRequest) (*ClientResponse, error) {
 
 	// switch operation {
 	// case cmn.Open:
@@ -48,41 +50,46 @@ func (mstr *Master) OperationRequest(req *rpctype.OperationRequest, res *rpctype
 	// case cmn.Delete:
 	// case cmn.Snapshot:
 	// }
+	res := &ClientResponse{}
 
 	appId := req.ApplicationId
 	filename := req.Filename
 
 	var allowedPermissions common.PermissionType = 0
 	if file, ok := mstr.namespace.GetFileInformation(filename); ok {
-		appIdAsString := appId.String()
+		appIdAsString := appId
 		if file.owner == appIdAsString {
-			allowedPermissions = file.permissions[common.GroupPermissions.Application]
+			allowedPermissions = file.permissions[common.PermissionGroup_Application]
 		} else if file.group[appIdAsString] {
-			allowedPermissions = file.permissions[common.GroupPermissions.ApplicationGroup]
+			allowedPermissions = file.permissions[common.PermissionGroup_ApplicationGroup]
 		} else {
-			allowedPermissions = file.permissions[common.GroupPermissions.All]
+			allowedPermissions = file.permissions[common.PermissionGroup_All]
 		}
 
 		requestedPermission := common.OperationToPermissionType(req.Operation)
 		if allowedPermissions&requestedPermission == 0 {
-			res.Ok = false
-			return errors.New("application does not have permission to perform requested operation on this file")
+			res.Success = false
+			return res, errors.New("application does not have permission to perform requested operation on this file")
 		}
 	}
 
 	token, err := security.CreateToken(appId, filename, allowedPermissions)
 	if err != nil {
-		res.Ok = false
+		res.Success = false
 	}
 
 	res.Token = token
-	res.Ok = true
-	return nil
+	res.Success = true
+	return res, nil
 }
 
-// ChunkserverRegistration is a function which handles registering chunkservers
-func (mstr *Master) ChunkserverRegistration(req *rpctype.ChunkserverRegisterRequest,
-	res *rpctype.ChunkserverRegisterResponse) error {
+// RegisterChunkserver is a function which handles registering chunkservers
+func (mstr *Master) RegisterChunkserver(
+	context context.Context,
+	req *RegisterRequest,
+) (*RegisterResponse, error) {
+	res := &RegisterResponse{}
+
 	chunkserverAddr := req.ServerAddress
 	info := ChunkserverInfo{
 		time.Now(),
@@ -91,6 +98,6 @@ func (mstr *Master) ChunkserverRegistration(req *rpctype.ChunkserverRegisterRequ
 	}
 	mstr.Chunkservers[chunkserverAddr] = info
 	logger.Successf("successfully registered chunkserver %v", chunkserverAddr)
-	res.Ok = true
-	return nil
+	res.Success = true
+	return res, nil
 }

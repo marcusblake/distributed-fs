@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package master;
+
+import "pkg/common/operations.proto";
+import "pkg/common/permissions.proto";
+
+option go_package = "github.com/distributed-fs/internal/master";
+
+service Master {
+    rpc ClientOperationRequest(ClientRequest) returns (ClientResponse) { }
+    rpc RegisterChunkserver(RegisterRequest) returns (RegisterResponse) { }
+}
+
+// ClientRequest is a request to master from client to perform an operation
+message ClientRequest {
+	string ApplicationId = 1;
+	common.OperationType Operation = 2;
+	string Filename = 3;
+	map<int32, common.PermissionType> Permissions = 4;
+	int32 Offset = 5;
+}
+
+// OperationResponse is a reponse to the client indicate which chunkserver to use to make request
+message ClientResponse {
+	string ChunkserverAddress = 1;
+	string Token = 2;
+	bool Success = 3;
+}
+
+// RegisterRequest is a struct that will be used to register a chunkserver to master when it spawns
+message RegisterRequest {
+	string ServerAddress = 1;
+}
+
+// RegisterResponse is struct that will be sent to the chunkserver from master
+message RegisterResponse {
+	bool Success = 1;
+}
